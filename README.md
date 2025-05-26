@@ -99,12 +99,4 @@ This project demonstrates:
 - **Modern .NET Practices**: Latest .NET 8 features
 - **Database Design**: Proper relational database structure
 - **Security**: Authentication and authorization
-- **Clean Code**: SOLID principles and best practices
-
-## Contributing
-
-This is a student portfolio project. Feel free to fork and enhance!
-
-## License
-
-This project is for educational purposes.
+- **Clean Code**: SOLID principles and best 
