@@ -1,0 +1,261 @@
+@model IEnumerable<CafeApp.Core.Entities.Product>
+
+@{
+    ViewData["Title"] = $"Table {ViewBag.TableNumber} - Menu";
+    var tableNumber = ViewBag.TableNumber;
+}
+
+<div class="container-fluid">
+    <!-- Table Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h1 class="display-4 mb-0">
+                        <i class="bi bi-qr-code"></i>
+                        Table @tableNumber
+                    </h1>
+                    <p class="lead mb-0">Welcome! Browse our menu and place your order</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                <button class="btn btn-outline-primary" onclick="callWaiter()">
+                    <i class="bi bi-person-raised-hand"></i> Call Waiter
+                </button>
+                <a asp-action="Index" asp-controller="Cart" class="btn btn-primary">
+                    <i class="bi bi-cart"></i> View Cart (<span id="cart-count">0</span>)
+                </a>
+                <button class="btn btn-outline-success" onclick="requestBill()">
+                    <i class="bi bi-receipt"></i> Request Bill
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" id="search-input" class="form-control" placeholder="Search menu items...">
+            </div>
+        </div>
+        <div class="col-md-6">
+            <select id="category-filter" class="form-select">
+                <option value="">All Categories</option>
+                @foreach (var category in ViewBag.Categories as IEnumerable<CafeApp.Core.Entities.Category>)
+                {
+                    <option value="@category.Id">@category.Name</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <!-- Menu Items -->
+    <div class="row" id="menu-items">
+        @foreach (var product in Model)
+        {
+            <div class="col-lg-4 col-md-6 mb-4 menu-item" data-category="@product.CategoryId" data-name="@product.Name.ToLower()">
+                <div class="card h-100 shadow-sm">
+                    @if (!string.IsNullOrEmpty(product.ImageUrl))
+                    {
+                        <img src="@product.ImageUrl" class="card-img-top" alt="@product.Name" style="height: 200px; object-fit: cover;">
+                    }
+                    else
+                    {
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                        </div>
+                    }
+                    
+                    <div class="card-body d-flex flex-column">
+                        <div class="mb-2">
+                            <span class="badge bg-primary">@product.Category?.Name</span>
+                            @if (product.IsFeatured)
+                            {
+                                <span class="badge bg-warning">
+                                    <i class="bi bi-star-fill"></i> Featured
+                                </span>
+                            }
+                        </div>
+                        
+                        <h5 class="card-title">@product.Name</h5>
+                        
+                        @if (!string.IsNullOrEmpty(product.Description))
+                        {
+                            <p class="card-text text-muted small">@product.Description</p>
+                        }
+                        
+                        <div class="mb-2">
+                            @if (!string.IsNullOrEmpty(product.Size))
+                            {
+                                <small class="badge bg-info me-1">@product.Size</small>
+                            }
+                            @if (!string.IsNullOrEmpty(product.Temperature))
+                            {
+                                <small class="badge bg-warning">@product.Temperature</small>
+                            }
+                        </div>
+                        
+                        <div class="mt-auto">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="h5 text-primary mb-0">$@product.Price.ToString("F2")</span>
+                                @if (product.IsAvailable)
+                                {
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="quickAdd(@product.Id)">
+                                            <i class="bi bi-cart-plus"></i>
+                                        </button>
+                                        <a asp-action="Details" asp-route-id="@product.Id" class="btn btn-primary btn-sm">
+                                            View Details
+                                        </a>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Out of Stock</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="bi bi-exclamation-circle text-muted" style="font-size: 4rem;"></i>
+                    <h3 class="text-muted mt-3">No menu items available</h3>
+                    <p class="text-muted">Please check back later or contact staff for assistance.</p>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Floating Cart Button -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1000;">
+        <a asp-action="Index" asp-controller="Cart" class="btn btn-primary btn-lg rounded-circle shadow" style="width: 60px; height: 60px;">
+            <i class="bi bi-cart"></i>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="floating-cart-count">
+                0
+            </span>
+        </a>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Search functionality
+        document.getElementById('search-input').addEventListener('input', function() {
+            filterMenu();
+        });
+
+        // Category filter
+        document.getElementById('category-filter').addEventListener('change', function() {
+            filterMenu();
+        });
+
+        function filterMenu() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const selectedCategory = document.getElementById('category-filter').value;
+            const menuItems = document.querySelectorAll('.menu-item');
+
+            menuItems.forEach(item => {
+                const itemName = item.getAttribute('data-name');
+                const itemCategory = item.getAttribute('data-category');
+                
+                const matchesSearch = itemName.includes(searchTerm);
+                const matchesCategory = !selectedCategory || itemCategory === selectedCategory;
+                
+                if (matchesSearch && matchesCategory) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function quickAdd(productId) {
+            fetch('/Cart/AddToCart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    productId: productId,
+                    quantity: 1,
+                    tableNumber: @tableNumber
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Added to cart!', 'success');
+                    updateCartCount();
+                } else {
+                    showToast('Failed to add to cart', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error adding to cart', 'error');
+            });
+        }
+
+        function callWaiter() {
+            showToast('Waiter has been notified for Table @tableNumber', 'info');
+            // In a real app, this would send a notification to staff
+        }
+
+        function requestBill() {
+            if (confirm('Request bill for Table @tableNumber?')) {
+                showToast('Bill request sent to staff', 'info');
+                // In a real app, this would notify staff
+            }
+        }
+
+        function updateCartCount() {
+            fetch('/Cart/GetCartCount')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('cart-count').textContent = data.count;
+                    document.getElementById('floating-cart-count').textContent = data.count;
+                });
+        }
+
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            toast.innerHTML = `
+                <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                ${message}
+                <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 3000);
+        }
+
+        // Load cart count on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCartCount();
+        });
+    </script>
+}

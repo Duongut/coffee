@@ -1,0 +1,276 @@
+@model CafeApp.Core.Entities.Order
+
+@{
+    ViewData["Title"] = "Order Confirmation";
+}
+
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Success Header -->
+            <div class="text-center mb-4">
+                <div class="mb-3">
+                    <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                </div>
+                <h1 class="h2 text-success mb-2">Order Confirmed!</h1>
+                <p class="lead text-muted">Thank you for your order. We're preparing it now.</p>
+            </div>
+
+            <!-- Order Details Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="mb-0">
+                                <i class="bi bi-receipt"></i> Order #@Model.OrderNumber
+                            </h5>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge bg-light text-dark">Table @Model.TableNumber</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Order Status -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Order Status</h6>
+                            <span class="badge bg-warning fs-6">
+                                <i class="bi bi-clock"></i> @Model.Status
+                            </span>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Order Time</h6>
+                            <span class="fw-bold">@Model.CreatedAt.ToString("MMM dd, yyyy 'at' hh:mm tt")</span>
+                        </div>
+                    </div>
+
+                    <!-- Customer Information -->
+                    @if (!string.IsNullOrEmpty(Model.CustomerName) || !string.IsNullOrEmpty(Model.CustomerPhone) || !string.IsNullOrEmpty(Model.CustomerEmail))
+                    {
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-muted">Customer Information</h6>
+                                <div class="bg-light p-3 rounded">
+                                    @if (!string.IsNullOrEmpty(Model.CustomerName))
+                                    {
+                                        <div><strong>Name:</strong> @Model.CustomerName</div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.CustomerPhone))
+                                    {
+                                        <div><strong>Phone:</strong> @Model.CustomerPhone</div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.CustomerEmail))
+                                    {
+                                        <div><strong>Email:</strong> @Model.CustomerEmail</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Order Items -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-muted">Order Items</h6>
+                            <div class="table-responsive">
+                                <table class="table table-borderless">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Item</th>
+                                            <th>Details</th>
+                                            <th class="text-center">Qty</th>
+                                            <th class="text-end">Price</th>
+                                            <th class="text-end">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in Model.OrderItems)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <strong>@item.Product?.Name</strong>
+                                                </td>
+                                                <td>
+                                                    <div class="small">
+                                                        @if (!string.IsNullOrEmpty(item.Size))
+                                                        {
+                                                            <span class="badge bg-info me-1">@item.Size</span>
+                                                        }
+                                                        @if (!string.IsNullOrEmpty(item.Temperature))
+                                                        {
+                                                            <span class="badge bg-warning me-1">@item.Temperature</span>
+                                                        }
+                                                        @if (!string.IsNullOrEmpty(item.Notes))
+                                                        {
+                                                            <br><small class="text-muted">Note: @item.Notes</small>
+                                                        }
+                                                    </div>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-secondary">@item.Quantity</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    $@item.UnitPrice.ToString("F2")
+                                                </td>
+                                                <td class="text-end">
+                                                    <strong>$@item.TotalPrice.ToString("F2")</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Order Total -->
+                    <div class="row">
+                        <div class="col-md-6 offset-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Subtotal:</span>
+                                        <span>$@Model.SubTotal.ToString("F2")</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Tax:</span>
+                                        <span>$@Model.TaxAmount.ToString("F2")</span>
+                                    </div>
+                                    @if (Model.DiscountAmount > 0)
+                                    {
+                                        <div class="d-flex justify-content-between mb-2 text-success">
+                                            <span>Discount:</span>
+                                            <span>-$@Model.DiscountAmount.ToString("F2")</span>
+                                        </div>
+                                    }
+                                    <hr>
+                                    <div class="d-flex justify-content-between">
+                                        <strong>Total:</strong>
+                                        <strong class="text-primary h5">$@Model.TotalAmount.ToString("F2")</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Special Instructions -->
+                    @if (!string.IsNullOrEmpty(Model.Notes))
+                    {
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h6 class="text-muted">Special Instructions</h6>
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i> @Model.Notes
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Next Steps -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-list-check"></i> What's Next?
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-4 text-center mb-3">
+                            <div class="mb-2">
+                                <i class="bi bi-clock text-primary" style="font-size: 2rem;"></i>
+                            </div>
+                            <h6>Preparation</h6>
+                            <p class="small text-muted">Your order is being prepared by our kitchen staff</p>
+                        </div>
+                        <div class="col-md-4 text-center mb-3">
+                            <div class="mb-2">
+                                <i class="bi bi-bell text-warning" style="font-size: 2rem;"></i>
+                            </div>
+                            <h6>Notification</h6>
+                            <p class="small text-muted">We'll notify you when your order is ready</p>
+                        </div>
+                        <div class="col-md-4 text-center mb-3">
+                            <div class="mb-2">
+                                <i class="bi bi-cup-hot text-success" style="font-size: 2rem;"></i>
+                            </div>
+                            <h6>Pickup</h6>
+                            <p class="small text-muted">Collect your order from the counter</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex flex-wrap gap-2 justify-content-center">
+                        <a asp-action="Track" asp-route-orderNumber="@Model.OrderNumber" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Track Order
+                        </a>
+                        <a asp-controller="Menu" asp-action="Index" class="btn btn-outline-primary">
+                            <i class="bi bi-plus-circle"></i> Order More
+                        </a>
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="bi bi-house"></i> Back to Home
+                        </a>
+                        <button type="button" class="btn btn-outline-info" onclick="printReceipt()">
+                            <i class="bi bi-printer"></i> Print Receipt
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estimated Time -->
+            <div class="alert alert-info text-center mt-4">
+                <i class="bi bi-clock"></i>
+                <strong>Estimated preparation time: 15-20 minutes</strong>
+                <br>
+                <small>Actual time may vary depending on current orders</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function printReceipt() {
+            window.print();
+        }
+
+        // Auto-refresh order status every 30 seconds
+        setInterval(function() {
+            fetch(`/Order/GetOrderStatus?orderNumber=@Model.OrderNumber`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status && data.status !== '@Model.Status') {
+                        location.reload();
+                    }
+                })
+                .catch(error => console.log('Status check failed:', error));
+        }, 30000);
+
+        // Show success message
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add some celebration animation
+            const successIcon = document.querySelector('.bi-check-circle-fill');
+            if (successIcon) {
+                successIcon.style.animation = 'pulse 2s infinite';
+            }
+        });
+    </script>
+
+    <style>
+        @@keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @@media print {
+            .btn, .alert-info:last-child {
+                display: none !important;
+            }
+        }
+    </style>
+}

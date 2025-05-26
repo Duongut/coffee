@@ -1,0 +1,310 @@
+@model IEnumerable<CafeApp.Core.Entities.Order>
+
+@{
+    ViewData["Title"] = "Order Management";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="bi bi-receipt"></i>
+                        Order Management
+                    </h3>
+                    <div class="card-tools">
+                        <a asp-action="Kitchen" class="btn btn-success btn-sm">
+                            <i class="bi bi-display"></i> Kitchen View
+                        </a>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="refreshOrders()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Order Status Filter -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" id="search-orders" class="form-control" placeholder="Search by order number, customer name, or table...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="status-filter" class="form-select">
+                                <option value="">All Orders</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Confirmed">Confirmed</option>
+                                <option value="Preparing">Preparing</option>
+                                <option value="Ready">Ready</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="date-filter" class="form-select">
+                                <option value="today">Today</option>
+                                <option value="yesterday">Yesterday</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                                <option value="all">All Time</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Orders Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Table</th>
+                                    <th>Customer</th>
+                                    <th>Items</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Time</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orders-table-body">
+                                @foreach (var order in Model)
+                                {
+                                    <tr data-order-id="@order.Id" data-status="@order.Status" data-date="@order.CreatedAt.ToString("yyyy-MM-dd")">
+                                        <td>
+                                            <strong>#@order.OrderNumber</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">Table @order.TableNumber</span>
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(order.CustomerName))
+                                            {
+                                                <span>@order.CustomerName</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Walk-in</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <small>
+                                                @order.OrderItems.Count item(s)
+                                                <br>
+                                                <span class="text-muted">
+                                                    @string.Join(", ", order.OrderItems.Take(2).Select(oi => oi.Product?.Name ?? "Unknown"))
+                                                    @if (order.OrderItems.Count > 2)
+                                                    {
+                                                        <text>...</text>
+                                                    }
+                                                </span>
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <strong class="text-success">$@order.TotalAmount.ToString("F2")</strong>
+                                        </td>
+                                        <td>
+                                            @switch (order.Status.ToString())
+                                            {
+                                                case "Pending":
+                                                    <span class="badge bg-warning">Pending</span>
+                                                    break;
+                                                case "Confirmed":
+                                                    <span class="badge bg-info">Confirmed</span>
+                                                    break;
+                                                case "Preparing":
+                                                    <span class="badge bg-primary">Preparing</span>
+                                                    break;
+                                                case "Ready":
+                                                    <span class="badge bg-success">Ready</span>
+                                                    break;
+                                                case "Completed":
+                                                    <span class="badge bg-secondary">Completed</span>
+                                                    break;
+                                                default:
+                                                    <span class="badge bg-dark">@order.Status</span>
+                                                    break;
+                                            }
+                                        </td>
+                                        <td>
+                                            <small>
+                                                @order.CreatedAt.ToString("MMM dd")
+                                                <br>
+                                                <span class="text-muted">@order.CreatedAt.ToString("HH:mm")</span>
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button type="button" class="btn btn-outline-primary" onclick="viewOrderDetails(@order.Id)" title="View Details">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                @if (order.Status != CafeApp.Core.Enums.OrderStatus.Completed)
+                                                {
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown" title="Update Status">
+                                                            <i class="bi bi-arrow-up-circle"></i>
+                                                        </button>
+                                                        <ul class="dropdown-menu">
+                                                            @if (order.Status == CafeApp.Core.Enums.OrderStatus.Pending)
+                                                            {
+                                                                <li><a class="dropdown-item" href="#" onclick="updateOrderStatus(@order.Id, 'Confirmed')">Confirm Order</a></li>
+                                                            }
+                                                            @if (order.Status == CafeApp.Core.Enums.OrderStatus.Confirmed)
+                                                            {
+                                                                <li><a class="dropdown-item" href="#" onclick="updateOrderStatus(@order.Id, 'Preparing')">Start Preparing</a></li>
+                                                            }
+                                                            @if (order.Status == CafeApp.Core.Enums.OrderStatus.Preparing)
+                                                            {
+                                                                <li><a class="dropdown-item" href="#" onclick="updateOrderStatus(@order.Id, 'Ready')">Mark Ready</a></li>
+                                                            }
+                                                            @if (order.Status == CafeApp.Core.Enums.OrderStatus.Ready)
+                                                            {
+                                                                <li><a class="dropdown-item" href="#" onclick="updateOrderStatus(@order.Id, 'Completed')">Complete Order</a></li>
+                                                            }
+                                                        </ul>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if (!Model.Any())
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-receipt text-muted" style="font-size: 4rem;"></i>
+                            <h4 class="text-muted mt-3">No orders found</h4>
+                            <p class="text-muted">Orders will appear here when customers place them.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Order Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="orderDetailsContent">
+                <!-- Order details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Cache buster - force reload of JavaScript
+        console.log('Orders Index Script Loaded - Version 2.0');
+        // Search functionality
+        document.getElementById('search-orders').addEventListener('input', filterOrders);
+        document.getElementById('status-filter').addEventListener('change', filterOrders);
+        document.getElementById('date-filter').addEventListener('change', filterOrders);
+
+        function filterOrders() {
+            const searchTerm = document.getElementById('search-orders').value.toLowerCase();
+            const statusFilter = document.getElementById('status-filter').value;
+            const dateFilter = document.getElementById('date-filter').value;
+            const rows = document.querySelectorAll('#orders-table-body tr');
+
+            rows.forEach(row => {
+                const orderNumber = row.cells[0].textContent.toLowerCase();
+                const customer = row.cells[2].textContent.toLowerCase();
+                const table = row.cells[1].textContent.toLowerCase();
+                const status = row.getAttribute('data-status');
+                const orderDate = new Date(row.getAttribute('data-date'));
+
+                const matchesSearch = orderNumber.includes(searchTerm) ||
+                                    customer.includes(searchTerm) ||
+                                    table.includes(searchTerm);
+
+                const matchesStatus = !statusFilter || status === statusFilter;
+
+                let matchesDate = true;
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+
+                switch(dateFilter) {
+                    case 'today':
+                        matchesDate = orderDate.toDateString() === today.toDateString();
+                        break;
+                    case 'yesterday':
+                        matchesDate = orderDate.toDateString() === yesterday.toDateString();
+                        break;
+                    case 'week':
+                        const weekAgo = new Date(today);
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        matchesDate = orderDate >= weekAgo;
+                        break;
+                    case 'month':
+                        const monthAgo = new Date(today);
+                        monthAgo.setMonth(monthAgo.getMonth() - 1);
+                        matchesDate = orderDate >= monthAgo;
+                        break;
+                }
+
+                row.style.display = (matchesSearch && matchesStatus && matchesDate) ? '' : 'none';
+            });
+        }
+
+        function viewOrderDetails(orderId) {
+            fetch(`/Admin/Orders/Details/${orderId}`)
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('orderDetailsContent').innerHTML = html;
+                    new bootstrap.Modal(document.getElementById('orderDetailsModal')).show();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to load order details');
+                });
+        }
+
+        function updateOrderStatus(orderId, newStatus) {
+            if (confirm(`Update order status to ${newStatus}?`)) {
+                fetch(`/Admin/Orders/UpdateStatusAjax`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        orderId: orderId,
+                        status: newStatus
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload(); // Refresh the page to show updated status
+                    } else {
+                        alert('Failed to update order status');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error updating order status');
+                });
+            }
+        }
+
+        function refreshOrders() {
+            location.reload();
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(refreshOrders, 30000);
+    </script>
+}

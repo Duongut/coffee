@@ -1,0 +1,165 @@
+@model CafeApp.Core.Entities.Product
+
+@{
+    ViewData["Title"] = "Product Details";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="bi bi-info-circle"></i>
+                        Product Details
+                    </h3>
+                    <div class="card-tools">
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <a asp-action="Index" class="btn btn-secondary btn-sm">
+                            <i class="bi bi-arrow-left"></i> Back to List
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <table class="table table-borderless">
+                                <tbody>
+                                    <tr>
+                                        <th width="150">Product Name:</th>
+                                        <td>
+                                            <h4 class="mb-0">@Model.Name</h4>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Description:</th>
+                                        <td>
+                                            <p class="mb-0">@(Model.Description ?? "No description available")</p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Price:</th>
+                                        <td>
+                                            <span class="h5 text-success">
+                                                <i class="bi bi-currency-dollar"></i>@Model.Price.ToString("F2")
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Category:</th>
+                                        <td>
+                                            <span class="badge bg-primary">@Model.Category?.Name</span>
+                                        </td>
+                                    </tr>
+                                    @if (!string.IsNullOrEmpty(Model.Size))
+                                    {
+                                        <tr>
+                                            <th>Size:</th>
+                                            <td>
+                                                <span class="badge bg-info">@Model.Size</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.Temperature))
+                                    {
+                                        <tr>
+                                            <th>Temperature:</th>
+                                            <td>
+                                                <span class="badge bg-warning">@Model.Temperature</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                    <tr>
+                                        <th>Availability:</th>
+                                        <td>
+                                            @if (Model.IsAvailable)
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle"></i> Available
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">
+                                                    <i class="bi bi-x-circle"></i> Not Available
+                                                </span>
+                                            }
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Featured:</th>
+                                        <td>
+                                            @if (Model.IsFeatured)
+                                            {
+                                                <span class="badge bg-warning">
+                                                    <i class="bi bi-star-fill"></i> Featured Product
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Not featured</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Created:</th>
+                                        <td>
+                                            <small class="text-muted">
+                                                <i class="bi bi-calendar"></i> @Model.CreatedAt.ToString("MMM dd, yyyy 'at' hh:mm tt")
+                                            </small>
+                                        </td>
+                                    </tr>
+                                    @if (Model.UpdatedAt.HasValue)
+                                    {
+                                        <tr>
+                                            <th>Last Updated:</th>
+                                            <td>
+                                                <small class="text-muted">
+                                                    <i class="bi bi-clock"></i> @Model.UpdatedAt.Value.ToString("MMM dd, yyyy 'at' hh:mm tt")
+                                                </small>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Product Image</h5>
+                                </div>
+                                <div class="card-body text-center">
+                                    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                                    {
+                                        <img src="@Model.ImageUrl" alt="@Model.Name" class="img-fluid rounded shadow-sm" style="max-height: 300px;">
+                                    }
+                                    else
+                                    {
+                                        <div class="text-muted py-5">
+                                            <i class="bi bi-image" style="font-size: 4rem;"></i>
+                                            <p class="mt-2">No image available</p>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <div class="d-grid gap-2">
+                                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                                        <i class="bi bi-pencil"></i> Edit Product
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">
+                                        <i class="bi bi-trash"></i> Delete Product
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

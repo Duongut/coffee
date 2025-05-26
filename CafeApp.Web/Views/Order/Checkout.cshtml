@@ -1,0 +1,270 @@
+@model CafeApp.Web.Controllers.CheckoutViewModel
+
+@{
+    ViewData["Title"] = "Checkout";
+}
+
+<div class="container my-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                    <li class="breadcrumb-item"><a asp-controller="Menu" asp-action="Index">Menu</a></li>
+                    <li class="breadcrumb-item"><a asp-controller="Cart" asp-action="Index">Cart</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Checkout</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">
+                <i class="bi bi-credit-card"></i> Checkout
+                <span class="badge bg-info ms-2">Table @Model.TableNumber</span>
+            </h1>
+        </div>
+    </div>
+
+    <form asp-action="PlaceOrder" method="post" id="checkout-form">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="TableNumber" />
+        <input type="hidden" asp-for="SubTotal" />
+        <input type="hidden" asp-for="TaxAmount" />
+        <input type="hidden" asp-for="TotalAmount" />
+
+        <div class="row">
+            <!-- Order Summary -->
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-list-check"></i> Order Summary
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        @if (Model.OrderItems.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-borderless">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Item</th>
+                                            <th>Details</th>
+                                            <th class="text-center">Qty</th>
+                                            <th class="text-end">Price</th>
+                                            <th class="text-end">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in Model.OrderItems)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <strong>@item.ProductName</strong>
+                                                </td>
+                                                <td>
+                                                    <div class="small text-muted">
+                                                        @if (!string.IsNullOrEmpty(item.Size))
+                                                        {
+                                                            <span class="badge bg-info me-1">@item.Size</span>
+                                                        }
+                                                        @if (!string.IsNullOrEmpty(item.Temperature))
+                                                        {
+                                                            <span class="badge bg-warning me-1">@item.Temperature</span>
+                                                        }
+                                                        @if (!string.IsNullOrEmpty(item.Notes))
+                                                        {
+                                                            <br><small class="text-muted">Note: @item.Notes</small>
+                                                        }
+                                                    </div>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-secondary">@item.Quantity</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    $@item.UnitPrice.ToString("F2")
+                                                </td>
+                                                <td class="text-end">
+                                                    <strong>$@item.TotalPrice.ToString("F2")</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-4">
+                                <i class="bi bi-cart-x text-muted" style="font-size: 3rem;"></i>
+                                <p class="text-muted mt-2">No items in your order</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Customer Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-person"></i> Customer Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="CustomerName" class="form-label">Name (Optional)</label>
+                                    <input asp-for="CustomerName" class="form-control" placeholder="Enter your name">
+                                    <span asp-validation-for="CustomerName" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="CustomerPhone" class="form-label">Phone (Optional)</label>
+                                    <input asp-for="CustomerPhone" class="form-control" placeholder="Enter your phone number">
+                                    <span asp-validation-for="CustomerPhone" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label asp-for="CustomerEmail" class="form-label">Email (Optional)</label>
+                                    <input asp-for="CustomerEmail" class="form-control" type="email" placeholder="Enter your email for order updates">
+                                    <span asp-validation-for="CustomerEmail" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label asp-for="Notes" class="form-label">Special Instructions (Optional)</label>
+                                    <textarea asp-for="Notes" class="form-control" rows="3" placeholder="Any special requests or dietary requirements..."></textarea>
+                                    <span asp-validation-for="Notes" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Total & Payment -->
+            <div class="col-lg-4">
+                <div class="card mb-4 position-sticky" style="top: 20px;">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-calculator"></i> Order Total
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal:</span>
+                            <span>$@Model.SubTotal.ToString("F2")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Tax (10%):</span>
+                            <span>$@Model.TaxAmount.ToString("F2")</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-3">
+                            <strong>Total:</strong>
+                            <strong class="text-primary h5">$@Model.TotalAmount.ToString("F2")</strong>
+                        </div>
+
+                        <!-- Payment Method Selection -->
+                        <div class="mb-3">
+                            <label class="form-label">Payment Method</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="paymentMethod" id="cash" value="cash" checked>
+                                <label class="form-check-label" for="cash">
+                                    <i class="bi bi-cash"></i> Pay at Counter (Cash)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="paymentMethod" id="card" value="card">
+                                <label class="form-check-label" for="card">
+                                    <i class="bi bi-credit-card"></i> Pay at Counter (Card)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="paymentMethod" id="mobile" value="mobile">
+                                <label class="form-check-label" for="mobile">
+                                    <i class="bi bi-phone"></i> Mobile Payment
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="place-order-btn">
+                                <i class="bi bi-check-circle"></i> Place Order
+                            </button>
+                            <a asp-controller="Cart" asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to Cart
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Info -->
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-info-circle"></i> Order Information
+                        </h6>
+                        <ul class="list-unstyled small mb-0">
+                            <li><i class="bi bi-table"></i> Table: @Model.TableNumber</li>
+                            <li><i class="bi bi-clock"></i> Estimated time: 15-20 minutes</li>
+                            <li><i class="bi bi-bell"></i> You'll be notified when ready</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('checkout-form').addEventListener('submit', function(e) {
+            const submitBtn = document.getElementById('place-order-btn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+        });
+
+        // Form validation
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('checkout-form');
+            const emailInput = document.querySelector('input[name="CustomerEmail"]');
+            const phoneInput = document.querySelector('input[name="CustomerPhone"]');
+
+            emailInput.addEventListener('blur', function() {
+                if (this.value && !isValidEmail(this.value)) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+
+            phoneInput.addEventListener('blur', function() {
+                if (this.value && !isValidPhone(this.value)) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+        });
+
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+            return emailRegex.test(email);
+        }
+
+        function isValidPhone(phone) {
+            const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+            return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
+        }
+    </script>
+}

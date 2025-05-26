@@ -1,0 +1,178 @@
+@{
+    ViewData["Title"] = "Debug Product Creation";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="bi bi-bug"></i>
+                        Debug Product Creation
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5>Testing Product Creation System</h5>
+                        <p>This page will help us diagnose issues with the product creation system.</p>
+                    </div>
+
+                    <!-- Test 1: Simple Form Submission -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Test 1: Simple Form Submission</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="simple-form" method="post" action="/Admin/Products/TestPost">
+                                @Html.AntiForgeryToken()
+                                <div class="mb-3">
+                                    <label class="form-label">Test Data</label>
+                                    <input type="text" name="testData" class="form-control" value="Simple test data" />
+                                </div>
+                                <button type="submit" class="btn btn-primary">Test Simple POST</button>
+                            </form>
+                            <div id="simple-result" class="mt-3"></div>
+                        </div>
+                    </div>
+
+                    <!-- Test 2: File Upload Test -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Test 2: File Upload Test</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="file-form" method="post" action="/Admin/Products/TestFileUpload" enctype="multipart/form-data">
+                                @Html.AntiForgeryToken()
+                                <div class="mb-3">
+                                    <label class="form-label">Test File</label>
+                                    <input type="file" name="testFile" class="form-control" accept="image/*" />
+                                </div>
+                                <button type="submit" class="btn btn-primary">Test File Upload</button>
+                            </form>
+                            <div id="file-result" class="mt-3"></div>
+                        </div>
+                    </div>
+
+                    <!-- Test 3: Authentication Check -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Test 3: Authentication Status</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>User Authenticated:</strong> @User.Identity.IsAuthenticated</p>
+                            <p><strong>User Name:</strong> @User.Identity.Name</p>
+                            <p><strong>User Roles:</strong> 
+                                @if (User.Identity.IsAuthenticated)
+                                {
+                                    @string.Join(", ", User.Claims.Where(c => c.Type == System.Security.Claims.ClaimTypes.Role).Select(c => c.Value))
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not authenticated</span>
+                                }
+                            </p>
+                            <p><strong>Is Admin:</strong> @User.IsInRole("Admin")</p>
+                            <p><strong>Is Manager:</strong> @User.IsInRole("Manager")</p>
+                        </div>
+                    </div>
+
+                    <!-- Test 4: Service Availability -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Test 4: Service Availability</h5>
+                        </div>
+                        <div class="card-body">
+                            <button id="test-services" class="btn btn-info">Test Services</button>
+                            <div id="services-result" class="mt-3"></div>
+                        </div>
+                    </div>
+
+                    <!-- Test 5: Categories Check -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Test 5: Categories Available</h5>
+                        </div>
+                        <div class="card-body">
+                            <button id="test-categories" class="btn btn-info">Load Categories</button>
+                            <div id="categories-result" class="mt-3"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <a asp-action="Index" class="btn btn-secondary">Back to Products</a>
+                        <a asp-action="Create" class="btn btn-primary">Try Create Product</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Test simple form submission
+        document.getElementById('simple-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('simple-result').innerHTML = 
+                    '<div class="alert alert-success">Success: ' + JSON.stringify(data) + '</div>';
+            })
+            .catch(error => {
+                document.getElementById('simple-result').innerHTML = 
+                    '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+            });
+        });
+
+        // Test file upload
+        document.getElementById('file-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('file-result').innerHTML = 
+                    '<div class="alert alert-success">Success: ' + JSON.stringify(data) + '</div>';
+            })
+            .catch(error => {
+                document.getElementById('file-result').innerHTML = 
+                    '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+            });
+        });
+
+        // Test services
+        document.getElementById('test-services').addEventListener('click', function() {
+            fetch('/Admin/Products/Test')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('services-result').innerHTML = 
+                    '<div class="alert alert-success">Services working: ' + JSON.stringify(data) + '</div>';
+            })
+            .catch(error => {
+                document.getElementById('services-result').innerHTML = 
+                    '<div class="alert alert-danger">Services error: ' + error.message + '</div>';
+            });
+        });
+
+        // Test categories
+        document.getElementById('test-categories').addEventListener('click', function() {
+            // This would need a separate endpoint to test categories
+            document.getElementById('categories-result').innerHTML = 
+                '<div class="alert alert-info">Categories test would need a separate endpoint</div>';
+        });
+    </script>
+}

@@ -1,0 +1,151 @@
+﻿@{
+    ViewData["Title"] = "Welcome";
+}
+
+<!-- Hero Section -->
+<div class="hero-section bg-primary text-white text-center py-5 mb-5 rounded">
+    <div class="container">
+        <h1 class="display-4 fw-bold">
+            <i class="bi bi-cup-hot"></i> Welcome to Our Cafe
+        </h1>
+        <p class="lead mb-4">Experience the finest coffee and delicious treats in a cozy atmosphere</p>
+        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+            <a asp-controller="Menu" asp-action="Index" class="btn btn-warning btn-lg me-md-2">
+                <i class="bi bi-list-ul"></i> View Menu
+            </a>
+            <a asp-controller="Menu" asp-action="Table" asp-route-tableNumber="1" class="btn btn-outline-light btn-lg">
+                <i class="bi bi-qr-code"></i> Order Now
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Featured Products -->
+@if (ViewBag.FeaturedProducts != null && ((IEnumerable<CafeApp.Core.Entities.Product>)ViewBag.FeaturedProducts).Any())
+{
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="text-center mb-4">
+                <i class="bi bi-star-fill text-warning"></i> Featured Items
+            </h2>
+        </div>
+    </div>
+    <div class="row">
+        @foreach (var product in (IEnumerable<CafeApp.Core.Entities.Product>)ViewBag.FeaturedProducts)
+        {
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="bi bi-cup-hot display-4 text-primary"></i>
+                        </div>
+                        <h5 class="card-title">@product.Name</h5>
+                        <p class="card-text text-muted">@product.Description</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="h5 text-primary mb-0">$@product.Price.ToString("F2")</span>
+                            <button class="btn btn-outline-primary btn-sm" onclick="addToCart(@product.Id)">
+                                <i class="bi bi-cart-plus"></i> Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<!-- Categories Section -->
+@if (ViewBag.Categories != null && ((IEnumerable<CafeApp.Core.Entities.Category>)ViewBag.Categories).Any())
+{
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="text-center mb-4">
+                <i class="bi bi-tags"></i> Browse Categories
+            </h2>
+        </div>
+    </div>
+    <div class="row">
+        @foreach (var category in (IEnumerable<CafeApp.Core.Entities.Category>)ViewBag.Categories)
+        {
+            <div class="col-md-4 col-lg-2 mb-3">
+                <a asp-controller="Menu" asp-action="Category" asp-route-id="@category.Id" class="text-decoration-none">
+                    <div class="card text-center h-100 category-card">
+                        <div class="card-body">
+                            <i class="bi bi-tag display-6 text-primary mb-2"></i>
+                            <h6 class="card-title">@category.Name</h6>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        }
+    </div>
+}
+
+<!-- Features Section -->
+<div class="row mb-5">
+    <div class="col-12">
+        <h2 class="text-center mb-4">Why Choose Us?</h2>
+    </div>
+    <div class="col-md-4 text-center mb-4">
+        <div class="feature-icon">
+            <i class="bi bi-qr-code display-4 text-primary"></i>
+        </div>
+        <h4>QR Code Ordering</h4>
+        <p class="text-muted">Scan and order directly from your table for a contactless experience.</p>
+    </div>
+    <div class="col-md-4 text-center mb-4">
+        <div class="feature-icon">
+            <i class="bi bi-clock display-4 text-success"></i>
+        </div>
+        <h4>Fast Service</h4>
+        <p class="text-muted">Quick preparation and real-time order tracking for your convenience.</p>
+    </div>
+    <div class="col-md-4 text-center mb-4">
+        <div class="feature-icon">
+            <i class="bi bi-heart display-4 text-danger"></i>
+        </div>
+        <h4>Quality Ingredients</h4>
+        <p class="text-muted">Fresh, high-quality ingredients in every cup and dish we serve.</p>
+    </div>
+</div>
+
+<style>
+.hero-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.category-card {
+    transition: transform 0.2s;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.feature-icon {
+    margin-bottom: 1rem;
+}
+</style>
+
+@section Scripts {
+    <script>
+        function addToCart(productId) {
+            // This will be implemented when we create the cart functionality
+            alert('Add to cart functionality will be implemented soon!');
+        }
+
+        // Update cart count on page load
+        $(document).ready(function() {
+            updateCartCount();
+        });
+
+        function updateCartCount() {
+            $.get('/Cart/GetCartCount', function(data) {
+                $('#cart-count').text(data.count);
+            });
+        }
+    </script>
+}

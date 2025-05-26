@@ -1,0 +1,165 @@
+@model List<CafeApp.Web.Controllers.CartItemViewModel>
+@{
+    ViewData["Title"] = "Shopping Cart";
+}
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="h3 mb-3">
+            <i class="bi bi-cart"></i> Shopping Cart
+        </h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a asp-controller="Menu" asp-action="Index" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-left"></i> Continue Shopping
+        </a>
+    </div>
+</div>
+
+@if (Model.Any())
+{
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-body">
+                    @foreach (var item in Model)
+                    {
+                        <div class="row align-items-center border-bottom py-3">
+                            <div class="col-md-6">
+                                <h6 class="mb-1">@item.ProductName</h6>
+                                @if (!string.IsNullOrEmpty(item.Size))
+                                {
+                                    <small class="text-muted">Size: @item.Size</small><br>
+                                }
+                                @if (!string.IsNullOrEmpty(item.Temperature))
+                                {
+                                    <small class="text-muted">Temperature: @item.Temperature</small><br>
+                                }
+                                @if (!string.IsNullOrEmpty(item.Notes))
+                                {
+                                    <small class="text-muted">Notes: @item.Notes</small>
+                                }
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <span class="fw-bold">$@item.UnitPrice.ToString("F2")</span>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="input-group input-group-sm">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity(@item.ProductId, @(item.Quantity - 1), '@item.Size', '@item.Temperature')">
+                                        <i class="bi bi-dash"></i>
+                                    </button>
+                                    <input type="text" class="form-control text-center" value="@item.Quantity" readonly>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity(@item.ProductId, @(item.Quantity + 1), '@item.Size', '@item.Temperature')">
+                                        <i class="bi bi-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-1 text-center">
+                                <span class="fw-bold">$@item.TotalPrice.ToString("F2")</span>
+                            </div>
+                            <div class="col-md-1 text-center">
+                                <button class="btn btn-outline-danger btn-sm" onclick="removeItem(@item.ProductId, '@item.Size', '@item.Temperature')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-receipt"></i> Order Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <span>$@ViewBag.CartTotal.ToString("F2")</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tax (10%):</span>
+                        <span>$@((decimal)ViewBag.CartTotal * 0.1m).ToString("F2")</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong>Total:</strong>
+                        <strong>$@((decimal)ViewBag.CartTotal * 1.1m).ToString("F2")</strong>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <a asp-controller="Order" asp-action="Checkout" class="btn btn-primary btn-lg">
+                            <i class="bi bi-credit-card"></i> Proceed to Checkout
+                        </a>
+                        <form asp-action="Clear" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Are you sure you want to clear your cart?')">
+                                <i class="bi bi-trash"></i> Clear Cart
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-body text-center">
+                    <i class="bi bi-info-circle text-primary mb-2" style="font-size: 2rem;"></i>
+                    <h6>Need Help?</h6>
+                    <p class="small text-muted mb-0">
+                        Contact our staff if you need assistance with your order.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="text-center py-5">
+        <i class="bi bi-cart-x display-1 text-muted"></i>
+        <h4 class="mt-3">Your Cart is Empty</h4>
+        <p class="text-muted">Add some delicious items to your cart to get started!</p>
+        <a asp-controller="Menu" asp-action="Index" class="btn btn-primary btn-lg">
+            <i class="bi bi-list-ul"></i> Browse Menu
+        </a>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function updateQuantity(productId, quantity, size, temperature) {
+            if (quantity < 0) return;
+            
+            $.post('/Cart/UpdateQuantity', {
+                productId: productId,
+                quantity: quantity,
+                size: size,
+                temperature: temperature
+            })
+            .done(function() {
+                location.reload();
+            })
+            .fail(function() {
+                alert('Failed to update quantity. Please try again.');
+            });
+        }
+        
+        function removeItem(productId, size, temperature) {
+            if (confirm('Are you sure you want to remove this item from your cart?')) {
+                $.post('/Cart/RemoveItem', {
+                    productId: productId,
+                    size: size,
+                    temperature: temperature
+                })
+                .done(function() {
+                    location.reload();
+                })
+                .fail(function() {
+                    alert('Failed to remove item. Please try again.');
+                });
+            }
+        }
+    </script>
+}

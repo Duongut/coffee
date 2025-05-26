@@ -1,0 +1,215 @@
+@model CafeApp.Web.Models.OrderTrackingViewModel
+
+@{
+    ViewData["Title"] = "Track Your Order";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-search me-2"></i>Track Your Order
+                    </h4>
+                </div>
+                <div class="card-body">
+                    @if (Model?.Order == null)
+                    {
+                        <!-- Order Search Form -->
+                        <form asp-action="Track" method="post">
+                            <div class="mb-3">
+                                <label for="orderNumber" class="form-label">Order Number</label>
+                                <input type="text" class="form-control" id="orderNumber" name="orderNumber"
+                                       placeholder="Enter your order number" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="phoneNumber" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="phoneNumber" name="phoneNumber"
+                                       placeholder="Enter your phone number" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>Track Order
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <!-- Order Details -->
+                        <div class="order-details">
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <h5>Order #@Model.Order.OrderNumber</h5>
+                                    <p class="text-muted">Placed on @Model.Order.CreatedAt.ToString("MMM dd, yyyy 'at' hh:mm tt")</p>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <span class="badge bg-@(Model.Order.Status == CafeApp.Core.Enums.OrderStatus.Completed ? "success" :
+                                                          Model.Order.Status == CafeApp.Core.Enums.OrderStatus.Cancelled ? "danger" :
+                                                          Model.Order.Status == CafeApp.Core.Enums.OrderStatus.Preparing ? "warning" : "info") fs-6">
+                                        @Model.Order.Status
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Order Progress -->
+                            <div class="order-progress mb-4">
+                                <div class="progress-steps">
+                                    <div class="step @(Model.Order.Status != CafeApp.Core.Enums.OrderStatus.Pending ? "completed" : "active")">
+                                        <div class="step-icon">
+                                            <i class="fas fa-clock"></i>
+                                        </div>
+                                        <div class="step-text">Order Received</div>
+                                    </div>
+                                    <div class="step @(Model.Order.Status == CafeApp.Core.Enums.OrderStatus.Preparing || Model.Order.Status == CafeApp.Core.Enums.OrderStatus.Ready || Model.Order.Status == CafeApp.Core.Enums.OrderStatus.Completed ? "completed" : "")">
+                                        <div class="step-icon">
+                                            <i class="fas fa-utensils"></i>
+                                        </div>
+                                        <div class="step-text">Preparing</div>
+                                    </div>
+                                    <div class="step @(Model.Order.Status == CafeApp.Core.Enums.OrderStatus.Ready || Model.Order.Status == CafeApp.Core.Enums.OrderStatus.Completed ? "completed" : "")">
+                                        <div class="step-icon">
+                                            <i class="fas fa-bell"></i>
+                                        </div>
+                                        <div class="step-text">Ready</div>
+                                    </div>
+                                    <div class="step @(Model.Order.Status == CafeApp.Core.Enums.OrderStatus.Completed ? "completed" : "")">
+                                        <div class="step-icon">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                        <div class="step-text">Completed</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Order Items -->
+                            <div class="order-items">
+                                <h6>Order Items</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Item</th>
+                                                <th>Quantity</th>
+                                                <th>Price</th>
+                                                <th>Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var item in Model.Order.OrderItems)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        @item.Product.Name
+                                                        @if (!string.IsNullOrEmpty(item.Product.Size))
+                                                        {
+                                                            <small class="text-muted">(@item.Product.Size)</small>
+                                                        }
+                                                    </td>
+                                                    <td>@item.Quantity</td>
+                                                    <td>$@item.UnitPrice.ToString("F2")</td>
+                                                    <td>$@((item.Quantity * item.UnitPrice).ToString("F2"))</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="fw-bold">
+                                                <td colspan="3">Total</td>
+                                                <td>$@Model.Order.TotalAmount.ToString("F2")</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Customer Information -->
+                            <div class="customer-info mt-4">
+                                <h6>Customer Information</h6>
+                                <p><strong>Name:</strong> @Model.Order.CustomerName</p>
+                                <p><strong>Phone:</strong> @Model.Order.CustomerPhone</p>
+                                @if (!string.IsNullOrEmpty(Model.Order.CustomerEmail))
+                                {
+                                    <p><strong>Email:</strong> @Model.Order.CustomerEmail</p>
+                                }
+                            </div>
+
+                            <!-- Track Another Order -->
+                            <div class="mt-4">
+                                <a asp-action="Track" class="btn btn-outline-primary">
+                                    <i class="fas fa-search me-2"></i>Track Another Order
+                                </a>
+                            </div>
+                        </div>
+                    }
+
+                    @if (ViewBag.ErrorMessage != null)
+                    {
+                        <div class="alert alert-danger mt-3">
+                            @ViewBag.ErrorMessage
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        margin: 2rem 0;
+        position: relative;
+    }
+
+    .progress-steps::before {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: #e9ecef;
+        z-index: 1;
+    }
+
+    .step {
+        text-align: center;
+        position: relative;
+        z-index: 2;
+        flex: 1;
+    }
+
+    .step-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #e9ecef;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .step.completed .step-icon {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .step.active .step-icon {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .step-text {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+
+    .step.completed .step-text,
+    .step.active .step-text {
+        color: #495057;
+        font-weight: 500;
+    }
+</style>

@@ -1,0 +1,378 @@
+@using CafeApp.Core.Entities
+@model Order?
+@{
+    ViewData["Title"] = "Real-time Order Tracking";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="bi bi-geo-alt"></i>
+                        Real-time Order Tracking
+                    </h3>
+                </div>
+                <div class="card-body">
+                    @if (Model == null)
+                    {
+                        <!-- Order Number Input -->
+                        <div class="text-center mb-4">
+                            <h5>Enter your order number to track your order</h5>
+                            <div class="row justify-content-center">
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <input type="text" id="orderNumberInput" class="form-control" placeholder="Enter order number" />
+                                        <button class="btn btn-primary" onclick="trackOrder()">
+                                            <i class="bi bi-search"></i> Track Order
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Order Information -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h5><i class="bi bi-receipt"></i> Order Details</h5>
+                                <p><strong>Order Number:</strong> <span id="orderNumber">@Model.OrderNumber</span></p>
+                                <p><strong>Table:</strong> @Model.TableNumber</p>
+                                <p><strong>Customer:</strong> @(Model.CustomerName ?? "Guest")</p>
+                                <p><strong>Total:</strong> $@Model.TotalAmount.ToString("F2")</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h5><i class="bi bi-clock"></i> Timing</h5>
+                                <p><strong>Ordered:</strong> @Model.CreatedAt.ToString("MMM dd, yyyy HH:mm")</p>
+                                <p><strong>Estimated Time:</strong> <span id="estimatedTime">Calculating...</span></p>
+                                <p><strong>Current Status:</strong> <span id="currentStatus" class="badge bg-info">@Model.Status</span></p>
+                            </div>
+                        </div>
+
+                        <!-- Real-time Status Progress -->
+                        <div class="mb-4">
+                            <h5><i class="bi bi-list-check"></i> Order Progress</h5>
+                            <div class="progress-container">
+                                <div class="progress mb-3" style="height: 25px;">
+                                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                                         role="progressbar" style="width: 0%">
+                                        <span id="progressText">Initializing...</span>
+                                    </div>
+                                </div>
+
+                                <!-- Status Steps -->
+                                <div class="row text-center">
+                                    <div class="col step" data-status="Pending">
+                                        <div class="step-icon">
+                                            <i class="bi bi-clock-history"></i>
+                                        </div>
+                                        <small>Received</small>
+                                    </div>
+                                    <div class="col step" data-status="Confirmed">
+                                        <div class="step-icon">
+                                            <i class="bi bi-check-circle"></i>
+                                        </div>
+                                        <small>Confirmed</small>
+                                    </div>
+                                    <div class="col step" data-status="Preparing">
+                                        <div class="step-icon">
+                                            <i class="bi bi-fire"></i>
+                                        </div>
+                                        <small>Preparing</small>
+                                    </div>
+                                    <div class="col step" data-status="Ready">
+                                        <div class="step-icon">
+                                            <i class="bi bi-bell"></i>
+                                        </div>
+                                        <small>Ready</small>
+                                    </div>
+                                    <div class="col step" data-status="Completed">
+                                        <div class="step-icon">
+                                            <i class="bi bi-check2-all"></i>
+                                        </div>
+                                        <small>Completed</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Real-time Notifications -->
+                        <div class="mb-4">
+                            <h5><i class="bi bi-bell"></i> Live Updates</h5>
+                            <div id="notificationArea" class="alert alert-info">
+                                <i class="bi bi-info-circle"></i>
+                                Connected to real-time updates. You'll be notified when your order status changes.
+                            </div>
+                        </div>
+
+                        <!-- Order Items -->
+                        <div class="mb-4">
+                            <h5><i class="bi bi-bag"></i> Order Items</h5>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Item</th>
+                                            <th>Quantity</th>
+                                            <th>Price</th>
+                                            <th>Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in Model.OrderItems)
+                                        {
+                                            <tr>
+                                                <td>@item.Product?.Name</td>
+                                                <td>@item.Quantity</td>
+                                                <td>$@item.TotalPrice.ToString("F2")</td>
+                                                <td>@(item.Notes ?? "-")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="text-center">
+                            <button class="btn btn-outline-primary me-2" onclick="callWaiter()">
+                                <i class="bi bi-person-raised-hand"></i> Call Waiter
+                            </button>
+                            <button class="btn btn-outline-secondary me-2" onclick="printReceipt()">
+                                <i class="bi bi-printer"></i> Print Receipt
+                            </button>
+                            <a asp-controller="Menu" asp-action="Index" class="btn btn-success">
+                                <i class="bi bi-plus-circle"></i> Order More
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .step {
+        position: relative;
+    }
+
+    .step-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        transition: all 0.3s ease;
+    }
+
+    .step.active .step-icon {
+        background-color: #0d6efd;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .step.completed .step-icon {
+        background-color: #198754;
+        color: white;
+    }
+
+    .progress-container {
+        position: relative;
+    }
+
+    .notification-toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1050;
+        min-width: 300px;
+    }
+
+    @@keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    .pulse {
+        animation: pulse 2s infinite;
+    }
+</style>
+
+@section Scripts {
+    <script src="~/lib/microsoft-signalr/dist/browser/signalr.min.js"></script>
+    <script>
+        let connection;
+        let currentOrderNumber = '@(Model?.OrderNumber ?? "")';
+        let currentTableNumber = @(Model?.TableNumber ?? 0);
+
+        // Initialize SignalR connection
+        function initializeSignalR() {
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl("/orderStatusHub")
+                .build();
+
+            connection.start().then(function () {
+                console.log("SignalR Connected");
+
+                if (currentOrderNumber) {
+                    // Join order-specific group
+                    connection.invoke("JoinOrderGroup", currentOrderNumber);
+
+                    // Join table group for table notifications
+                    if (currentTableNumber > 0) {
+                        connection.invoke("JoinTableGroup", currentTableNumber);
+                    }
+                }
+            }).catch(function (err) {
+                console.error("SignalR Connection Error: ", err);
+                showNotification("Connection error. Real-time updates may not work.", "warning");
+            });
+
+            // Listen for order status updates
+            connection.on("OrderStatusUpdated", function (data) {
+                updateOrderStatus(data.status, data.message);
+                showNotification(`Order ${data.orderNumber}: ${data.message || 'Status updated'}`, "info");
+            });
+
+            // Listen for table notifications
+            connection.on("TableNotification", function (data) {
+                showNotification(data.message, data.type);
+            });
+        }
+
+        // Update order status display
+        function updateOrderStatus(status, message) {
+            document.getElementById('currentStatus').textContent = status;
+            document.getElementById('currentStatus').className = `badge bg-${getStatusColor(status)}`;
+
+            updateProgressBar(status);
+            updateSteps(status);
+
+            if (message) {
+                document.getElementById('notificationArea').innerHTML =
+                    `<i class="bi bi-info-circle"></i> ${message}`;
+            }
+        }
+
+        // Update progress bar
+        function updateProgressBar(status) {
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+
+            const statusProgress = {
+                'Pending': { width: 20, text: 'Order Received', color: 'bg-info' },
+                'Confirmed': { width: 40, text: 'Order Confirmed', color: 'bg-primary' },
+                'Preparing': { width: 60, text: 'Being Prepared', color: 'bg-warning' },
+                'Ready': { width: 80, text: 'Ready for Pickup', color: 'bg-success' },
+                'Completed': { width: 100, text: 'Order Completed', color: 'bg-success' }
+            };
+
+            const progress = statusProgress[status] || statusProgress['Pending'];
+            progressBar.style.width = progress.width + '%';
+            progressBar.className = `progress-bar progress-bar-striped progress-bar-animated ${progress.color}`;
+            progressText.textContent = progress.text;
+        }
+
+        // Update step indicators
+        function updateSteps(status) {
+            const steps = document.querySelectorAll('.step');
+            const statusOrder = ['Pending', 'Confirmed', 'Preparing', 'Ready', 'Completed'];
+            const currentIndex = statusOrder.indexOf(status);
+
+            steps.forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index < currentIndex) {
+                    step.classList.add('completed');
+                } else if (index === currentIndex) {
+                    step.classList.add('active');
+                }
+            });
+        }
+
+        // Get status color
+        function getStatusColor(status) {
+            const colors = {
+                'Pending': 'secondary',
+                'Confirmed': 'primary',
+                'Preparing': 'warning',
+                'Ready': 'success',
+                'Completed': 'success'
+            };
+            return colors[status] || 'secondary';
+        }
+
+        // Show notification toast
+        function showNotification(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast notification-toast align-items-center text-white bg-${type} border-0`;
+            toast.setAttribute('role', 'alert');
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+
+            document.body.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+
+            // Remove toast after it's hidden
+            toast.addEventListener('hidden.bs.toast', () => {
+                document.body.removeChild(toast);
+            });
+        }
+
+        // Track order function
+        function trackOrder() {
+            const orderNumber = document.getElementById('orderNumberInput').value.trim();
+            if (orderNumber) {
+                window.location.href = `/Order/RealTimeTrack?orderNumber=${orderNumber}`;
+            } else {
+                showNotification('Please enter an order number', 'warning');
+            }
+        }
+
+        // Call waiter function
+        function callWaiter() {
+            if (currentTableNumber > 0) {
+                showNotification(`Waiter has been notified for Table ${currentTableNumber}`, 'success');
+                // In a real app, this would send a notification to staff
+            }
+        }
+
+        // Print receipt function
+        function printReceipt() {
+            window.print();
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            if (currentOrderNumber) {
+                initializeSignalR();
+                updateOrderStatus('@(Model?.Status.ToString() ?? "")', null);
+            }
+
+            // Allow Enter key to track order
+            document.getElementById('orderNumberInput')?.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    trackOrder();
+                }
+            });
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (connection) {
+                connection.stop();
+            }
+        });
+    </script>
+}

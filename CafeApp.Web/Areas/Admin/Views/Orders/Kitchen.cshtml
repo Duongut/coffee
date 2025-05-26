@@ -1,0 +1,394 @@
+@model IEnumerable<CafeApp.Core.Entities.Order>
+
+@{
+    ViewData["Title"] = "Kitchen Display";
+    Layout = "_AdminLayout";
+    var activeOrders = Model.Where(o => o.Status != CafeApp.Core.Enums.OrderStatus.Completed).OrderBy(o => o.CreatedAt);
+}
+
+<div class="container-fluid">
+    <!-- Kitchen Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card bg-dark text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-0">
+                                <i class="bi bi-display"></i>
+                                Kitchen Display System
+                            </h2>
+                            <small>Real-time order management for kitchen staff</small>
+                        </div>
+                        <div class="text-end">
+                            <div class="h4 mb-0">
+                                <span class="badge bg-warning me-2">@activeOrders.Count() Active Orders</span>
+                                <span class="badge bg-info">@DateTime.Now.ToString("HH:mm")</span>
+                            </div>
+                            <small>Last updated: <span id="last-updated">@DateTime.Now.ToString("HH:mm:ss")</span></small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Status Columns -->
+    <div class="row">
+        <!-- Pending Orders -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock"></i>
+                        Pending (@activeOrders.Count(o => o.Status == CafeApp.Core.Enums.OrderStatus.Pending))
+                    </h5>
+                </div>
+                <div class="card-body p-2" style="max-height: 600px; overflow-y: auto;">
+                    @foreach (var order in activeOrders.Where(o => o.Status == CafeApp.Core.Enums.OrderStatus.Pending))
+                    {
+                        <div class="card mb-2 border-warning">
+                            <div class="card-body p-2">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <strong class="text-warning">#@order.OrderNumber</strong>
+                                    <span class="badge bg-info">Table @order.TableNumber</span>
+                                </div>
+                                <div class="small mb-2">
+                                    <i class="bi bi-clock"></i> @order.CreatedAt.ToString("HH:mm")
+                                    <span class="text-muted">(@((DateTime.Now - order.CreatedAt).TotalMinutes.ToString("F0")) min ago)</span>
+                                </div>
+                                <div class="mb-2">
+                                    @foreach (var item in order.OrderItems)
+                                    {
+                                        <div class="d-flex justify-content-between">
+                                            <span>@item.Quantity× @item.Product?.Name</span>
+                                        </div>
+                                    }
+                                </div>
+                                <button class="btn btn-warning btn-sm w-100" onclick="updateOrderStatus(@order.Id, 'Confirmed')">
+                                    <i class="bi bi-check"></i> Confirm Order
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirmed Orders -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-check-circle"></i>
+                        Confirmed (@activeOrders.Count(o => o.Status == CafeApp.Core.Enums.OrderStatus.Confirmed))
+                    </h5>
+                </div>
+                <div class="card-body p-2" style="max-height: 600px; overflow-y: auto;">
+                    @foreach (var order in activeOrders.Where(o => o.Status == CafeApp.Core.Enums.OrderStatus.Confirmed))
+                    {
+                        <div class="card mb-2 border-info">
+                            <div class="card-body p-2">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <strong class="text-info">#@order.OrderNumber</strong>
+                                    <span class="badge bg-info">Table @order.TableNumber</span>
+                                </div>
+                                <div class="small mb-2">
+                                    <i class="bi bi-clock"></i> @order.CreatedAt.ToString("HH:mm")
+                                    <span class="text-muted">(@((DateTime.Now - order.CreatedAt).TotalMinutes.ToString("F0")) min ago)</span>
+                                </div>
+                                <div class="mb-2">
+                                    @foreach (var item in order.OrderItems)
+                                    {
+                                        <div class="d-flex justify-content-between">
+                                            <span>@item.Quantity× @item.Product?.Name</span>
+                                        </div>
+                                    }
+                                </div>
+                                <button class="btn btn-primary btn-sm w-100" onclick="updateOrderStatus(@order.Id, 'Preparing')">
+                                    <i class="bi bi-play"></i> Start Preparing
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Preparing Orders -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-gear"></i>
+                        Preparing (@activeOrders.Count(o => o.Status == CafeApp.Core.Enums.OrderStatus.Preparing))
+                    </h5>
+                </div>
+                <div class="card-body p-2" style="max-height: 600px; overflow-y: auto;">
+                    @foreach (var order in activeOrders.Where(o => o.Status == CafeApp.Core.Enums.OrderStatus.Preparing))
+                    {
+                        <div class="card mb-2 border-primary">
+                            <div class="card-body p-2">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <strong class="text-primary">#@order.OrderNumber</strong>
+                                    <span class="badge bg-info">Table @order.TableNumber</span>
+                                </div>
+                                <div class="small mb-2">
+                                    <i class="bi bi-clock"></i> @order.CreatedAt.ToString("HH:mm")
+                                    <span class="text-muted">(@((DateTime.Now - order.CreatedAt).TotalMinutes.ToString("F0")) min ago)</span>
+                                </div>
+                                <div class="mb-2">
+                                    @foreach (var item in order.OrderItems)
+                                    {
+                                        <div class="d-flex justify-content-between">
+                                            <span>@item.Quantity× @item.Product?.Name</span>
+                                        </div>
+                                    }
+                                </div>
+                                <button class="btn btn-success btn-sm w-100" onclick="updateOrderStatus(@order.Id, 'Ready')">
+                                    <i class="bi bi-check2"></i> Mark Ready
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Ready Orders -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-check2-all"></i>
+                        Ready (@activeOrders.Count(o => o.Status == CafeApp.Core.Enums.OrderStatus.Ready))
+                    </h5>
+                </div>
+                <div class="card-body p-2" style="max-height: 600px; overflow-y: auto;">
+                    @foreach (var order in activeOrders.Where(o => o.Status == CafeApp.Core.Enums.OrderStatus.Ready))
+                    {
+                        <div class="card mb-2 border-success">
+                            <div class="card-body p-2">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <strong class="text-success">#@order.OrderNumber</strong>
+                                    <span class="badge bg-info">Table @order.TableNumber</span>
+                                </div>
+                                <div class="small mb-2">
+                                    <i class="bi bi-clock"></i> @order.CreatedAt.ToString("HH:mm")
+                                    <span class="text-muted">(@((DateTime.Now - order.CreatedAt).TotalMinutes.ToString("F0")) min ago)</span>
+                                </div>
+                                <div class="mb-2">
+                                    @foreach (var item in order.OrderItems)
+                                    {
+                                        <div class="d-flex justify-content-between">
+                                            <span>@item.Quantity× @item.Product?.Name</span>
+                                        </div>
+                                    }
+                                </div>
+                                <button class="btn btn-secondary btn-sm w-100" onclick="updateOrderStatus(@order.Id, 'Completed')">
+                                    <i class="bi bi-check-circle"></i> Complete Order
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!activeOrders.Any())
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="bi bi-check-circle text-success" style="font-size: 4rem;"></i>
+                    <h3 class="text-muted mt-3">All caught up!</h3>
+                    <p class="text-muted">No active orders in the kitchen. Great job!</p>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Quick Actions -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Quick Actions</h6>
+                        </div>
+                        <div>
+                            <a asp-action="Index" class="btn btn-outline-primary btn-sm me-2">
+                                <i class="bi bi-list"></i> Order Management
+                            </a>
+                            <button type="button" class="btn btn-primary btn-sm" onclick="refreshKitchen()">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/microsoft-signalr/dist/browser/signalr.min.js"></script>
+    <script>
+        let connection;
+
+        // Initialize SignalR connection for kitchen
+        function initializeSignalR() {
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl("/orderStatusHub")
+                .build();
+
+            connection.start().then(function () {
+                console.log("Kitchen SignalR Connected");
+                // Join kitchen group for real-time updates
+                connection.invoke("JoinKitchenGroup");
+            }).catch(function (err) {
+                console.error("SignalR Connection Error: ", err);
+                showToast("Connection error. Real-time updates may not work.", "warning");
+            });
+
+            // Listen for new orders
+            connection.on("NewOrderReceived", function (data) {
+                showToast(`New Order: ${data.orderNumber} - Table ${data.tableNumber}`, "info");
+                // Add visual/audio notification
+                playNotificationSound();
+                // Refresh kitchen display
+                setTimeout(() => location.reload(), 1000);
+            });
+
+            // Listen for kitchen updates
+            connection.on("KitchenUpdate", function (data) {
+                showToast(data.message, "info");
+                // Update specific order if data contains order info
+                if (data.data && data.data.orderId) {
+                    updateOrderDisplay(data.data.orderId, data.data.status);
+                }
+            });
+        }
+
+        function updateOrderStatus(orderId, newStatus) {
+            fetch(`/Admin/Orders/UpdateStatusAjax`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    orderId: orderId,
+                    status: newStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success feedback
+                    showToast(`Order updated to ${newStatus}`, 'success');
+                    // Refresh the page after a short delay
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showToast('Failed to update order status', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error updating order status', 'error');
+            });
+        }
+
+        function refreshKitchen() {
+            location.reload();
+        }
+
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            toast.innerHTML = `
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+                ${message}
+                <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+            `;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 3000);
+        }
+
+        // Update order display without full page reload
+        function updateOrderDisplay(orderId, status) {
+            const orderCard = document.querySelector(`[data-order-id="${orderId}"]`);
+            if (orderCard) {
+                const statusBadge = orderCard.querySelector('.order-status');
+                if (statusBadge) {
+                    statusBadge.textContent = status;
+                    statusBadge.className = `badge bg-${getStatusColor(status)} order-status`;
+                }
+            }
+        }
+
+        // Get status color for badges
+        function getStatusColor(status) {
+            const colors = {
+                'Pending': 'secondary',
+                'Confirmed': 'primary',
+                'Preparing': 'warning',
+                'Ready': 'success',
+                'Completed': 'success'
+            };
+            return colors[status] || 'secondary';
+        }
+
+        // Play notification sound for new orders
+        function playNotificationSound() {
+            // Create a simple beep sound
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        // Initialize SignalR when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSignalR();
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (connection) {
+                connection.invoke("LeaveKitchenGroup");
+                connection.stop();
+            }
+        });
+
+        // Reduced auto-refresh interval since we have real-time updates
+        setInterval(() => {
+            document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+        }, 1000);
+
+        // Optional: Full refresh every 5 minutes as backup
+        setInterval(() => {
+            location.reload();
+        }, 300000);
+    </script>
+}
