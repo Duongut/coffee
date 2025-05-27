@@ -24,7 +24,13 @@ namespace CafeApp.Web.Controllers
         // GET: Order/Checkout
         public async Task<IActionResult> Checkout(int? tableNumber)
         {
-            var cart = GetCartFromSession();
+            // Get table number from session if not provided
+            if (!tableNumber.HasValue)
+            {
+                tableNumber = HttpContext.Session.GetInt32("CurrentTableNumber");
+            }
+
+            var cart = GetCartFromSession(tableNumber);
             if (!cart.Any())
             {
                 TempData["ErrorMessage"] = "Your cart is empty.";
@@ -55,13 +61,34 @@ namespace CafeApp.Web.Controllers
                 }
             }
 
+            // Validate table number - More flexible approach
+            if (!tableNumber.HasValue || tableNumber.Value < 1)
+            {
+                // If no valid table number, try to get from session
+                tableNumber = HttpContext.Session.GetInt32("CurrentTableNumber");
+
+                // If still no valid table number, redirect to cart with guidance
+                if (!tableNumber.HasValue || tableNumber.Value < 1)
+                {
+                    TempData["ErrorMessage"] = "Please select your table first by scanning the QR code at your table to proceed with checkout.";
+                    return RedirectToAction("Index", "Cart");
+                }
+
+                // Validate table number range
+                if (tableNumber.Value > 20)
+                {
+                    TempData["ErrorMessage"] = "Invalid table number. Please scan the QR code at your table.";
+                    return RedirectToAction("Index", "Cart");
+                }
+            }
+
             var checkoutViewModel = new CheckoutViewModel
             {
                 OrderItems = orderItems,
                 SubTotal = total,
                 TaxAmount = total * 0.1m, // 10% tax
                 TotalAmount = total + (total * 0.1m),
-                TableNumber = tableNumber ?? 1
+                TableNumber = tableNumber.Value // No more default to 1!
             };
 
             return View(checkoutViewModel);
@@ -77,7 +104,7 @@ namespace CafeApp.Web.Controllers
                 return View("Checkout", model);
             }
 
-            var cart = GetCartFromSession();
+            var cart = GetCartFromSession(model.TableNumber);
             if (!cart.Any())
             {
                 TempData["ErrorMessage"] = "Your cart is empty.";
@@ -130,8 +157,9 @@ namespace CafeApp.Web.Controllers
                     $"Order {createdOrder.OrderNumber} has been placed successfully!",
                     "success");
 
-                // Clear cart after successful order
-                HttpContext.Session.Remove(CartSessionKey);
+                // Clear cart after successful order (use table-specific session key)
+                var cartSessionKey = $"{CartSessionKey}_Table_{model.TableNumber}";
+                HttpContext.Session.Remove(cartSessionKey);
 
                 TempData["SuccessMessage"] = $"Order placed successfully! Order number: {createdOrder.OrderNumber}";
                 return RedirectToAction("Confirmation", new { orderNumber = createdOrder.OrderNumber });
@@ -227,9 +255,22 @@ namespace CafeApp.Web.Controllers
             };
         }
 
-        private List<CartItem> GetCartFromSession()
+        private List<CartItem> GetCartFromSession(int? tableNumber = null)
         {
-            var cartJson = HttpContext.Session.GetString(CartSessionKey);
+            string cartSessionKey;
+
+            if (tableNumber.HasValue && tableNumber.Value > 0)
+            {
+                // Use table-specific cart session
+                cartSessionKey = $"{CartSessionKey}_Table_{tableNumber.Value}";
+            }
+            else
+            {
+                // Fallback to general cart (for backward compatibility)
+                cartSessionKey = CartSessionKey;
+            }
+
+            var cartJson = HttpContext.Session.GetString(cartSessionKey);
             if (string.IsNullOrEmpty(cartJson))
             {
                 return new List<CartItem>();

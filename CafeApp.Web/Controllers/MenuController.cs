@@ -55,15 +55,20 @@ namespace CafeApp.Web.Controllers
                 return BadRequest("Invalid table number");
             }
 
+            // Generate unique session for this table
+            var tableSessionId = $"TBL_{tableNumber}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}";
+            HttpContext.Session.SetString($"TableSession_{tableNumber}", tableSessionId);
+            HttpContext.Session.SetInt32("CurrentTableNumber", tableNumber);
+
             ViewBag.TableNumber = tableNumber;
-            
+            ViewBag.TableSessionId = tableSessionId;
+
             var categories = await _categoryService.GetActiveCategoriesAsync();
-            var featuredProducts = await _productService.GetFeaturedProductsAsync();
-            
+            var products = await _productService.GetAvailableProductsAsync();
+
             ViewBag.Categories = categories;
-            ViewBag.FeaturedProducts = featuredProducts;
-            
-            return View();
+
+            return View(products);
         }
 
         // GET: Menu/Category/5
@@ -77,7 +82,7 @@ namespace CafeApp.Web.Controllers
 
             var products = await _productService.GetProductsByCategoryAsync(id);
             ViewBag.Category = category;
-            
+
             return View(products);
         }
     }

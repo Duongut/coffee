@@ -15,9 +15,16 @@ namespace CafeApp.Web.Controllers
         }
 
         // GET: Cart
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? tableNumber)
         {
-            var cart = GetCartFromSession();
+            // Get table number from session if not provided
+            if (!tableNumber.HasValue)
+            {
+                tableNumber = HttpContext.Session.GetInt32("CurrentTableNumber");
+            }
+
+            // Flexible cart system: work with or without table numbers
+            var cart = GetCartFromSession(tableNumber ?? 0);
             var cartItems = new List<CartItemViewModel>();
 
             foreach (var item in cart)
@@ -40,12 +47,21 @@ namespace CafeApp.Web.Controllers
             }
 
             ViewBag.CartTotal = cartItems.Sum(c => c.TotalPrice);
+            ViewBag.TableNumber = tableNumber ?? 0;
+            ViewBag.HasTableNumber = tableNumber.HasValue && tableNumber.Value > 0;
+
+            // Show helpful message if no table is selected but cart has items
+            if ((!tableNumber.HasValue || tableNumber.Value < 1) && cartItems.Any())
+            {
+                ViewBag.TableWarning = "For dine-in orders, please scan the QR code at your table to assign your order to the correct table.";
+            }
+
             return View(cartItems);
         }
 
         // POST: Cart/AddToCart
         [HttpPost]
-        public async Task<IActionResult> AddToCart(int productId, int quantity = 1, string notes = "", string size = "", string temperature = "")
+        public async Task<IActionResult> AddToCart(int productId, int quantity = 1, string notes = "", string size = "", string temperature = "", int tableNumber = 0)
         {
             var product = await _productService.GetProductByIdAsync(productId);
             if (product == null || !product.IsAvailable)
@@ -53,9 +69,9 @@ namespace CafeApp.Web.Controllers
                 return Json(new { success = false, message = "Product not found or unavailable" });
             }
 
-            var cart = GetCartFromSession();
-            var existingItem = cart.FirstOrDefault(c => c.ProductId == productId && 
-                                                       c.Size == size && 
+            var cart = GetCartFromSession(tableNumber);
+            var existingItem = cart.FirstOrDefault(c => c.ProductId == productId &&
+                                                       c.Size == size &&
                                                        c.Temperature == temperature);
 
             if (existingItem != null)
@@ -78,19 +94,19 @@ namespace CafeApp.Web.Controllers
                 });
             }
 
-            SaveCartToSession(cart);
-            
+            SaveCartToSession(cart, tableNumber);
+
             var cartCount = cart.Sum(c => c.Quantity);
             return Json(new { success = true, message = "Item added to cart", cartCount = cartCount });
         }
 
         // POST: Cart/UpdateQuantity
         [HttpPost]
-        public IActionResult UpdateQuantity(int productId, int quantity, string size = "", string temperature = "")
+        public IActionResult UpdateQuantity(int productId, int quantity, string size = "", string temperature = "", int tableNumber = 0)
         {
-            var cart = GetCartFromSession();
-            var item = cart.FirstOrDefault(c => c.ProductId == productId && 
-                                               c.Size == size && 
+            var cart = GetCartFromSession(tableNumber);
+            var item = cart.FirstOrDefault(c => c.ProductId == productId &&
+                                               c.Size == size &&
                                                c.Temperature == temperature);
 
             if (item != null)
@@ -103,49 +119,65 @@ namespace CafeApp.Web.Controllers
                 {
                     item.Quantity = quantity;
                 }
-                SaveCartToSession(cart);
+                SaveCartToSession(cart, tableNumber);
             }
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index), new { tableNumber = tableNumber });
         }
 
         // POST: Cart/RemoveItem
         [HttpPost]
-        public IActionResult RemoveItem(int productId, string size = "", string temperature = "")
+        public IActionResult RemoveItem(int productId, string size = "", string temperature = "", int tableNumber = 0)
         {
-            var cart = GetCartFromSession();
-            var item = cart.FirstOrDefault(c => c.ProductId == productId && 
-                                               c.Size == size && 
+            var cart = GetCartFromSession(tableNumber);
+            var item = cart.FirstOrDefault(c => c.ProductId == productId &&
+                                               c.Size == size &&
                                                c.Temperature == temperature);
 
             if (item != null)
             {
                 cart.Remove(item);
-                SaveCartToSession(cart);
+                SaveCartToSession(cart, tableNumber);
             }
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index), new { tableNumber = tableNumber });
         }
 
         // POST: Cart/Clear
         [HttpPost]
-        public IActionResult Clear()
+        public IActionResult Clear(int? tableNumber)
         {
-            HttpContext.Session.Remove(CartSessionKey);
-            return RedirectToAction(nameof(Index));
+            // Get table number from session if not provided
+            if (!tableNumber.HasValue)
+            {
+                tableNumber = HttpContext.Session.GetInt32("CurrentTableNumber");
+            }
+
+            if (tableNumber.HasValue && tableNumber.Value > 0)
+            {
+                var sessionKey = $"{CartSessionKey}_Table_{tableNumber.Value}";
+                HttpContext.Session.Remove(sessionKey);
+            }
+            else
+            {
+                HttpContext.Session.Remove(CartSessionKey);
+            }
+
+            return RedirectToAction(nameof(Index), new { tableNumber = tableNumber });
         }
 
         // GET: Cart/GetCartCount
-        public IActionResult GetCartCount()
+        public IActionResult GetCartCount(int tableNumber = 0)
         {
-            var cart = GetCartFromSession();
+            var cart = GetCartFromSession(tableNumber);
             var count = cart.Sum(c => c.Quantity);
             return Json(new { count = count });
         }
 
-        private List<CartItem> GetCartFromSession()
+        private List<CartItem> GetCartFromSession(int tableNumber = 0)
         {
-            var cartJson = HttpContext.Session.GetString(CartSessionKey);
+            var sessionKey = tableNumber > 0 ? $"{CartSessionKey}_Table_{tableNumber}" : CartSessionKey;
+            var cartJson = HttpContext.Session.GetString(sessionKey);
             if (string.IsNullOrEmpty(cartJson))
             {
                 return new List<CartItem>();
@@ -153,10 +185,11 @@ namespace CafeApp.Web.Controllers
             return JsonConvert.DeserializeObject<List<CartItem>>(cartJson) ?? new List<CartItem>();
         }
 
-        private void SaveCartToSession(List<CartItem> cart)
+        private void SaveCartToSession(List<CartItem> cart, int tableNumber = 0)
         {
+            var sessionKey = tableNumber > 0 ? $"{CartSessionKey}_Table_{tableNumber}" : CartSessionKey;
             var cartJson = JsonConvert.SerializeObject(cart);
-            HttpContext.Session.SetString(CartSessionKey, cartJson);
+            HttpContext.Session.SetString(sessionKey, cartJson);
         }
     }
 

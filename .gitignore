@@ -346,3 +346,5 @@ FodyWeavers.xsd
 # JetBrains Rider
 .idea/
 *.sln.iml
+# Markdown files
+*.md

@@ -5,6 +5,9 @@
     var tableNumber = ViewBag.TableNumber;
 }
 
+@* Anti-forgery token for AJAX requests *@
+@Html.AntiForgeryToken()
+
 <div class="container-fluid">
     <!-- Table Header -->
     <div class="row mb-4">
@@ -28,7 +31,7 @@
                 <button class="btn btn-outline-primary" onclick="callWaiter()">
                     <i class="bi bi-person-raised-hand"></i> Call Waiter
                 </button>
-                <a asp-action="Index" asp-controller="Cart" class="btn btn-primary">
+                <a asp-action="Index" asp-controller="Cart" asp-route-tableNumber="@tableNumber" class="btn btn-primary">
                     <i class="bi bi-cart"></i> View Cart (<span id="cart-count">0</span>)
                 </a>
                 <button class="btn btn-outline-success" onclick="requestBill()">
@@ -61,21 +64,22 @@
 
     <!-- Menu Items -->
     <div class="row" id="menu-items">
-        @foreach (var product in Model)
+        @if (Model != null)
         {
+            @foreach (var product in Model)
+            {
             <div class="col-lg-4 col-md-6 mb-4 menu-item" data-category="@product.CategoryId" data-name="@product.Name.ToLower()">
                 <div class="card h-100 shadow-sm">
                     @if (!string.IsNullOrEmpty(product.ImageUrl))
                     {
-                        <img src="@product.ImageUrl" class="card-img-top" alt="@product.Name" style="height: 200px; object-fit: cover;">
+                        <img src="@product.ImageUrl" class="card-img-top" alt="@product.Name" style="height: 200px; object-fit: cover;"
+                             onerror="this.src='/images/placeholder-product.svg';">
                     }
                     else
                     {
-                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
-                            <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
-                        </div>
+                        <img src="/images/placeholder-product.svg" class="card-img-top" alt="@product.Name" style="height: 200px; object-fit: cover;">
                     }
-                    
+
                     <div class="card-body d-flex flex-column">
                         <div class="mb-2">
                             <span class="badge bg-primary">@product.Category?.Name</span>
@@ -86,14 +90,14 @@
                                 </span>
                             }
                         </div>
-                        
+
                         <h5 class="card-title">@product.Name</h5>
-                        
+
                         @if (!string.IsNullOrEmpty(product.Description))
                         {
                             <p class="card-text text-muted small">@product.Description</p>
                         }
-                        
+
                         <div class="mb-2">
                             @if (!string.IsNullOrEmpty(product.Size))
                             {
@@ -104,7 +108,7 @@
                                 <small class="badge bg-warning">@product.Temperature</small>
                             }
                         </div>
-                        
+
                         <div class="mt-auto">
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="h5 text-primary mb-0">$@product.Price.ToString("F2")</span>
@@ -128,25 +132,27 @@
                     </div>
                 </div>
             </div>
+            }
+        }
+        else
+        {
+            <div class="row">
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="bi bi-exclamation-circle text-muted" style="font-size: 4rem;"></i>
+                        <h3 class="text-muted mt-3">No menu items available</h3>
+                        <p class="text-muted">Please check back later or contact staff for assistance.</p>
+                    </div>
+                </div>
+            </div>
         }
     </div>
 
-    @if (!Model.Any())
-    {
-        <div class="row">
-            <div class="col-12">
-                <div class="text-center py-5">
-                    <i class="bi bi-exclamation-circle text-muted" style="font-size: 4rem;"></i>
-                    <h3 class="text-muted mt-3">No menu items available</h3>
-                    <p class="text-muted">Please check back later or contact staff for assistance.</p>
-                </div>
-            </div>
-        </div>
-    }
+
 
     <!-- Floating Cart Button -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1000;">
-        <a asp-action="Index" asp-controller="Cart" class="btn btn-primary btn-lg rounded-circle shadow" style="width: 60px; height: 60px;">
+        <a asp-action="Index" asp-controller="Cart" asp-route-tableNumber="@tableNumber" class="btn btn-primary btn-lg rounded-circle shadow" style="width: 60px; height: 60px;">
             <i class="bi bi-cart"></i>
             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="floating-cart-count">
                 0
@@ -157,6 +163,10 @@
 
 @section Scripts {
     <script>
+        // Get table number from ViewBag and store as JavaScript variable
+        const tableNumber = @ViewBag.TableNumber;
+        console.log('JavaScript loaded, tableNumber:', tableNumber);
+
         // Search functionality
         document.getElementById('search-input').addEventListener('input', function() {
             filterMenu();
@@ -175,10 +185,10 @@
             menuItems.forEach(item => {
                 const itemName = item.getAttribute('data-name');
                 const itemCategory = item.getAttribute('data-category');
-                
+
                 const matchesSearch = itemName.includes(searchTerm);
                 const matchesCategory = !selectedCategory || itemCategory === selectedCategory;
-                
+
                 if (matchesSearch && matchesCategory) {
                     item.style.display = 'block';
                 } else {
@@ -188,24 +198,37 @@
         }
 
         function quickAdd(productId) {
+            console.log('quickAdd called with productId:', productId, 'tableNumber:', tableNumber);
+
+            // Create form data to match controller expectations
+            const formData = new FormData();
+            formData.append('productId', productId);
+            formData.append('quantity', 1);
+            formData.append('tableNumber', tableNumber);
+
+            // Get anti-forgery token
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            if (token) {
+                formData.append('__RequestVerificationToken', token);
+            }
+
+            console.log('Sending request to /Cart/AddToCart');
+
             fetch('/Cart/AddToCart', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    productId: productId,
-                    quantity: 1,
-                    tableNumber: @tableNumber
-                })
+                body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response received:', response.status);
+                return response.json();
+            })
             .then(data => {
+                console.log('Response data:', data);
                 if (data.success) {
                     showToast('Added to cart!', 'success');
                     updateCartCount();
                 } else {
-                    showToast('Failed to add to cart', 'error');
+                    showToast('Failed to add to cart: ' + (data.message || 'Unknown error'), 'error');
                 }
             })
             .catch(error => {
@@ -215,23 +238,31 @@
         }
 
         function callWaiter() {
-            showToast('Waiter has been notified for Table @tableNumber', 'info');
+            showToast('Waiter has been notified for Table ' + tableNumber, 'info');
             // In a real app, this would send a notification to staff
         }
 
         function requestBill() {
-            if (confirm('Request bill for Table @tableNumber?')) {
+            if (confirm('Request bill for Table ' + tableNumber + '?')) {
                 showToast('Bill request sent to staff', 'info');
                 // In a real app, this would notify staff
             }
         }
 
         function updateCartCount() {
-            fetch('/Cart/GetCartCount')
-                .then(response => response.json())
+            console.log('updateCartCount called for table', tableNumber);
+            fetch('/Cart/GetCartCount?tableNumber=' + tableNumber)
+                .then(response => {
+                    console.log('GetCartCount response:', response.status);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('Cart count data:', data);
                     document.getElementById('cart-count').textContent = data.count;
                     document.getElementById('floating-cart-count').textContent = data.count;
+                })
+                .catch(error => {
+                    console.error('Error getting cart count:', error);
                 });
         }
 
@@ -245,7 +276,7 @@
                 <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
             `;
             document.body.appendChild(toast);
-            
+
             setTimeout(() => {
                 if (toast.parentElement) {
                     toast.remove();
@@ -253,9 +284,13 @@
             }, 3000);
         }
 
-        // Load cart count on page load
+        // Load cart count on page load and store table number
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded event fired');
             updateCartCount();
+            // Store current table number in sessionStorage for navigation
+            sessionStorage.setItem('currentTableNumber', tableNumber);
+            console.log('Table number stored in sessionStorage:', tableNumber);
         });
     </script>
 }

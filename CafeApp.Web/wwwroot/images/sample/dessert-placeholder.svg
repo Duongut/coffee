@@ -1,0 +1,6 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100%" height="100%" fill="#FF69B4"/>
+  <circle cx="200" cy="150" r="80" fill="#FFB6C1" stroke="#DC143C" stroke-width="3"/>
+  <circle cx="200" cy="150" r="60" fill="#FFC0CB"/>
+  <text x="200" y="250" font-family="Arial, sans-serif" font-size="18" fill="white" text-anchor="middle">Dessert</text>
+</svg>

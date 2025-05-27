@@ -7,12 +7,32 @@
     <div class="col-md-8">
         <h1 class="h3 mb-3">
             <i class="bi bi-cart"></i> Shopping Cart
+            @if (ViewBag.HasTableNumber)
+            {
+                <span class="badge bg-info ms-2">Table @ViewBag.TableNumber</span>
+            }
         </h1>
+        @if (!string.IsNullOrEmpty(ViewBag.TableWarning))
+        {
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> @ViewBag.TableWarning
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
     </div>
     <div class="col-md-4 text-end">
-        <a asp-controller="Menu" asp-action="Index" class="btn btn-outline-primary">
-            <i class="bi bi-arrow-left"></i> Continue Shopping
-        </a>
+        @if (ViewBag.HasTableNumber)
+        {
+            <a asp-controller="Menu" asp-action="Table" asp-route-tableNumber="@ViewBag.TableNumber" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Continue Shopping
+            </a>
+        }
+        else
+        {
+            <a asp-controller="Menu" asp-action="Index" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Continue Shopping
+            </a>
+        }
     </div>
 </div>
 
@@ -67,7 +87,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-lg-4">
             <div class="card shadow">
                 <div class="card-header">
@@ -89,12 +109,29 @@
                         <strong>Total:</strong>
                         <strong>$@((decimal)ViewBag.CartTotal * 1.1m).ToString("F2")</strong>
                     </div>
-                    
+
                     <div class="d-grid gap-2">
-                        <a asp-controller="Order" asp-action="Checkout" class="btn btn-primary btn-lg">
-                            <i class="bi bi-credit-card"></i> Proceed to Checkout
-                        </a>
+                        @if (ViewBag.HasTableNumber)
+                        {
+                            <a asp-controller="Order" asp-action="Checkout" asp-route-tableNumber="@ViewBag.TableNumber" class="btn btn-primary btn-lg">
+                                <i class="bi bi-credit-card"></i> Proceed to Checkout
+                            </a>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>Select Your Table:</strong> Please scan the QR code at your table to proceed with checkout.
+                            </div>
+                            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary btn-lg">
+                                <i class="bi bi-qr-code"></i> Scan Table QR Code
+                            </a>
+                        }
                         <form asp-action="Clear" method="post" class="d-inline">
+                            @if (ViewBag.HasTableNumber)
+                            {
+                                <input type="hidden" name="tableNumber" value="@ViewBag.TableNumber" />
+                            }
                             <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Are you sure you want to clear your cart?')">
                                 <i class="bi bi-trash"></i> Clear Cart
                             </button>
@@ -102,7 +139,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="card mt-3">
                 <div class="card-body text-center">
                     <i class="bi bi-info-circle text-primary mb-2" style="font-size: 2rem;"></i>
@@ -131,7 +168,7 @@ else
     <script>
         function updateQuantity(productId, quantity, size, temperature) {
             if (quantity < 0) return;
-            
+
             $.post('/Cart/UpdateQuantity', {
                 productId: productId,
                 quantity: quantity,
@@ -145,7 +182,7 @@ else
                 alert('Failed to update quantity. Please try again.');
             });
         }
-        
+
         function removeItem(productId, size, temperature) {
             if (confirm('Are you sure you want to remove this item from your cart?')) {
                 $.post('/Cart/RemoveItem', {

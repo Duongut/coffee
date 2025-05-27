@@ -48,6 +48,7 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IDataCleanupService, DataCleanupService>();
 
 // Session
 builder.Services.AddDistributedMemoryCache();
@@ -96,7 +97,7 @@ app.MapControllerRoute(
 // SignalR Hub
 app.MapHub<OrderStatusHub>("/orderStatusHub");
 
-// Seed data
+// Seed data and cleanup
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -105,13 +106,18 @@ using (var scope = app.Services.CreateScope())
         var context = services.GetRequiredService<ApplicationDbContext>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+        var dataCleanupService = services.GetRequiredService<IDataCleanupService>();
 
         await CafeApp.Data.SeedData.InitializeAsync(context, userManager, roleManager);
+
+        // Clean up orphaned image references and assign sample images
+        await dataCleanupService.CleanupOrphanedImageReferencesAsync();
+        await dataCleanupService.AssignSampleImagesToProductsAsync();
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while seeding the database.");
+        logger.LogError(ex, "An error occurred while seeding the database or cleaning up data.");
     }
 }
 

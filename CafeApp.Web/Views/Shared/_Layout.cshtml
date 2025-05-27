@@ -33,7 +33,7 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Cart" asp-action="Index">
+                            <a class="nav-link" asp-area="" asp-controller="Cart" asp-action="Index" id="nav-cart-link">
                                 <i class="bi bi-cart"></i> Cart <span id="cart-count" class="badge bg-warning text-dark">0</span>
                             </a>
                         </li>
@@ -73,6 +73,24 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script>
+        // Make navigation cart link intelligent
+        $(document).ready(function() {
+            // Check if we have a current table number in session
+            var currentTableNumber = sessionStorage.getItem('currentTableNumber');
+            if (currentTableNumber && currentTableNumber > 0) {
+                var cartLink = document.getElementById('nav-cart-link');
+                if (cartLink) {
+                    var currentHref = cartLink.getAttribute('href');
+                    if (!currentHref.includes('tableNumber=')) {
+                        cartLink.setAttribute('href', currentHref + '?tableNumber=' + currentTableNumber);
+                    }
+                }
+            }
+        });
+    </script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
